@@ -2,6 +2,8 @@
 OpenWrt package to enable and force Huawei B715s-23 LTE bands (and DL Carrier Aggregation (CA)).  
 With no bands specified, uses specific bands: B28 UL and B28+B7+B3 DL (useful for french MNO Free Mobile).
 
+Releases available here: https://github.com/geckoflume/huawei-lte-aggregation/releases
+
 ## Contents
 ```bash
 📦huawei-lte-aggregation
@@ -27,7 +29,7 @@ With no bands specified, uses specific bands: B28 UL and B28+B7+B3 DL (useful fo
 ## How to build
 In order to run the scripts, you have to install the requirements and compile huawei-lte-aggregation for your platform.
 
-## Standard
+### Standard
 1. Install the GNU toolchain for your distro, for Debian/Ubuntu
 ```bash
 sudo apt install gcc-defaults
@@ -40,7 +42,7 @@ make clean
 make
 ```
 
-## OpenWrt package
+### OpenWrt package
 1. Download the OpenWrt SDK for your router platform here: https://downloads.openwrt.org/snapshots/targets/
 
 2. Extract it using 
@@ -66,13 +68,13 @@ make package/huawei-lte-aggregation/{clean,compile}
 
 Your package can be found in `/path/to/openwrt-sdk-<Platform>_gcc-<version>_musl.Linux-x86_64/bin/packages/<arch>/mypackages/huawei-lte-aggregation_0.1-1_<arch>.ipk`.
 
-### (Optional) How to deploy and install
+#### (Optional) How to deploy and install
 ```bash
 scp huawei-lte-aggregation_0.1-1_<arch>.ipk root@ip:/tmp
 ssh root@ip 'opkg install /tmp/huawei-lte-aggregation_0.1-1_<arch>.ipk'
 ```
 
-### (Optional) How to install
+#### (Optional) How to uninstall
 ```bash
 scp huawei-lte-aggregation_0.1-1_<arch>.ipk root@ip:/tmp
 ssh root@ip 'opkg remove huawei-lte-aggregation'
