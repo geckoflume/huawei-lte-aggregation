@@ -1,12 +1,12 @@
 /**
  * @file netutils.h
  * @author Florian Mornet (Florian.Mornet@bordeaux-inp.fr)
- * @brief 
+ * @brief Network-related functions to connect to Huawei routers using sockets.
  * @version 0.1
  * @date 2020-12-29
- * 
+ *
  * @copyright Copyright (c) 2020. This is free software, licensed under the GNU General Public License v3.
- * 
+ *
  */
 
 #include <netdb.h>
@@ -23,62 +23,69 @@
 #define PORT 80
 
 /**
- * @brief
+ * @brief Print a message on stderr and exit with a failure status code.
  *
- * @param host
- * @return int
+ * @param message String to be displayed on stderr
+ */
+void exit_failure(const char *message);
+
+/**
+ * @brief Open a new socket to a host and return the associated file desciptor.
+ *
+ * @param[in] host IP to connect to
+ * @return File descriptor for the opened socket, or -1 on error
  */
 int socket_connect(const char *host);
 
 /**
- * @brief
+ * @brief Shut down connection and close a specified socket.
  *
- * @param fd
- * @return int
+ * @param[in] fd File descriptor representing the socket to close
+ * @return 0 on success, -1 on error
  */
 int socket_close(int fd);
 
 /**
- * @brief
+ * @brief Send a HTTP GET request to / on the fd socket
  *
- * @param fd
- * @param host
- * @return ssize_t
+ * @param[in] fd File descriptor representing the socket
+ * @param[in] host IP to connect to
+ * @return Number of bytes written to the file descriptor, or -1 on error
  */
-ssize_t http_get(int fd, const char *host);
+ssize_t http_get_home(int fd, const char *host);
 
 /**
- * @brief Perform login POST request
+ * @brief Send a HTTP POST request to /api/user/login with specified header data to login.
  *
- * @param fd
- * @param host
- * @param sessionid
- * @param csrf
- * @param encoded_password
- * @return ssize_t
+ * @param[in] fd File descriptor representing the socket
+ * @param[in] host IP to connect to
+ * @param[in] sessionid SessionID fetched from http_get_home()
+ * @param[in] csrf CSRF token fetched from http_get_home()
+ * @param[in] encoded_password Encoded password, @see encode_password()
+ * @return Number of bytes written to the file descriptor, or -1 on error
  */
 ssize_t http_post_login(int fd, const char *host, const char *sessionid, const char *csrf,
                         const char *encoded_password);
 
 /**
- * @brief Get CSRF token
+ * @brief Send a HTTP GET request to /api/webserver/SesTokInfo with specified header data to get a new CSRF token.
  *
- * @param fd
- * @param host
- * @param sessionid
- * @param csrf
- * @return ssize_t
+ * @param[in] fd File descriptor representing the socket
+ * @param[in] host IP to connect to
+ * @param[in] sessionid SessionID fetched from http_get_home()
+ * @param[in] csrf CSRF token fetched from http_get_home()
+ * @return Number of bytes written to the file descriptor, or -1 on error
  */
 ssize_t http_get_csrf(int fd, const char *host, const char *sessionid, const char *csrf);
 
 /**
- * @brief Request network band change
+ * @brief Send a HTTP POST request to /api/user/login with specified header data to request a network band change.
  *
- * @param fd
- * @param host
- * @param sessionid
- * @param csrf
- * @param band
- * @return ssize_t
+ * @param[in] fd File descriptor representing the socket
+ * @param[in] host IP to connect to
+ * @param[in] sessionid SessionID fetched from http_get_home()
+ * @param[in] csrf CSRF token fetched from http_get_home() or http_get_csrf()
+ * @param[in] band Band in hex format to change to @see ../README.md
+ * @return Number of bytes written to the file descriptor, or -1 on error
  */
 ssize_t http_post_band(int fd, const char *host, const char *sessionid, const char *csrf, const char *band);

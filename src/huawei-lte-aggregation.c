@@ -1,7 +1,7 @@
 /**
  * @file huawei-lte-aggregation.c
  * @author Florian Mornet (Florian.Mornet@bordeaux-inp.fr)
- * @brief Enable Huawei B715s-23 LTE Carrier Aggregation (CA) 
+ * @brief Enable Huawei B715s-23 LTE Carrier Aggregation (CA)
  * (by default, specific bands: B28 UL and B28+B7+B3 DL (for french MNO Free Mobile)).
  * @version 0.1
  * @date 2020-12-29
@@ -21,17 +21,7 @@
 #define ADMIN_USERNAME_LEN 5
 
 /**
- * @brief Print a message on stderr and exit with a failure status code
- *
- * @param message String to be displayed on stderr
- */
-void exit_failure(const char *message) {
-  perror(message);
-  exit(EXIT_FAILURE);
-}
-
-/**
- * @brief Converts an ASCII string to its hex representation
+ * @brief Convert an ASCII string to its hex representation.
  *
  * @param[out] output Output unsigned char * buffer
  * @param[in] input Input unsigned char * ASCII string
@@ -41,16 +31,14 @@ void str_to_hexStr(BYTE *output, BYTE *input, size_t length) {
   size_t i = 0;
   for (; i < length; i++) {
     sprintf((char *)(output + i * 2), "%02x", input[i]);
-    // printf("%02x (d: %d / c: %c) - ", input[i], input[i], input[i]);
-    // printf("Next: %02x (d: %d / c: %c)\n", input[i + 1], input[i + 1], input[i + 1]);
   }
 
-  // insert NULL at the end of the output string
+  // Insert NULL at the end of the output string
   output[i * 2] = '\0';
 }
 
 /**
- * @brief Encodes a password as base64(sha256("admin"+base64(sha256("pwd"))+"csrf"))
+ * @brief Encode a password to the following pattern: base64(sha256("admin"+base64(sha256("pwd"))+"csrf")).
  *
  * @param[out] output Output buffer to store the encoded password
  * @param[in] password Clear text password to login to the router
@@ -62,7 +50,6 @@ void encode_password(unsigned char *output, const char *password, const unsigned
   BYTE buf_sha256[SHA256_BLOCK_SIZE + 1];
   BYTE buf_sha256_hex[SHA256_BLOCK_SIZE * 2 + 1];
   BYTE buf_base64[BUFFER_SIZE] = ADMIN_USERNAME;
-  // printf("Password: %s\n", password);
 
   // 1: SHA256 encode
   sha256_init(&ctx);
@@ -75,43 +62,40 @@ void encode_password(unsigned char *output, const char *password, const unsigned
   // 2: Base64 encode
   len = base64_encode(buf_sha256_hex, buf_base64 + ADMIN_USERNAME_LEN, SHA256_BLOCK_SIZE * 2, 0);
   len += ADMIN_USERNAME_LEN;
-  // printf("Base64: %s\n", buf_base64 + ADMIN_USERNAME_LEN);
 
   // 3: Concat admin + password + csrf
   memcpy(buf_base64 + len, (unsigned char *)csrf, CSRF_LEN);
   buf_base64[len + CSRF_LEN] = '\0';
-  // printf("Concat: %s\n", buf_base64);
 
   // 4: SHA256 encode
   sha256_init(&ctx);
   sha256_update(&ctx, buf_base64, len + CSRF_LEN);
   sha256_final(&ctx, buf_sha256);
   buf_sha256[SHA256_BLOCK_SIZE] = '\0';
-  // printf("SHA256: %s\n", buf_sha256);
   str_to_hexStr(buf_sha256_hex, buf_sha256, SHA256_BLOCK_SIZE);
-  // printf("SHA256 hex: %s\n", buf_sha256_hex);
 
   // 5: Base64 encode in output buffer
   len = base64_encode(buf_sha256_hex, (unsigned char *)output, SHA256_BLOCK_SIZE * 2, 0);
   output[len] = '\0';
-  // printf("Base64: %s\n", output);
 }
 
 /**
- * @brief Initializes the connection by sending a first request to the router
+ * @brief Initialize the connection by sending a first request and parse the router response.
+ * @see http_get_home()
  *
  * @param[in] host String representing the router host
  * @param[inout] buffer buffer used to read data from socket
  * @param[out] sessionid buffer to store the SessionID
  * @param[out] csrf buffer to store the CSRF
- * @return char true if success, false otherwise
+ * @return true if success
+ * @return false otherwise
  */
 char init(const char *host, char *buffer, BYTE *sessionid, BYTE *csrf) {
   char csrf_found = 0, sessionid_found = 0;
   char *ptr = NULL;
 
   int fd = socket_connect(host);
-  if (http_get(fd, host) == -1)
+  if (http_get_home(fd, host) == -1)
     exit_failure("HTTP GET /");
 
   bzero(buffer, BUFFER_SIZE);
@@ -122,9 +106,7 @@ char init(const char *host, char *buffer, BYTE *sessionid, BYTE *csrf) {
       ptr = strstr(buffer, "<head><meta name=\"csrf_token\" content");
       if (ptr != NULL) {
         memcpy(csrf, ptr + 39, CSRF_LEN);
-        // csrf = (char *)ptr + 39;
         csrf[CSRF_LEN] = '\0';
-        // printf("csrf1: %s\n", csrf);
         ptr = NULL;
         csrf_found = 1;
       }
@@ -135,9 +117,7 @@ char init(const char *host, char *buffer, BYTE *sessionid, BYTE *csrf) {
       ptr = strstr(buffer, "SessionID=");
       if (ptr != NULL) {
         memcpy(sessionid, ptr + 10, SESSIONID_LEN);
-        // sessionid = (char *)ptr + 10;
         sessionid[SESSIONID_LEN] = '\0';
-        // printf("sessionid: %s\n", sessionid);
         ptr = NULL;
         sessionid_found = 1;
       }
@@ -152,14 +132,16 @@ char init(const char *host, char *buffer, BYTE *sessionid, BYTE *csrf) {
 }
 
 /**
- * @brief Sends a POST request to login to the router
+ * @brief Send a POST request to login to the router and parse the router response.
+ * @see http_post_login()
  *
  * @param[in] host String representing the router host
  * @param[inout] buffer buffer used to read data from socket
  * @param[inout] sessionid buffer containing the SessionID
  * @param[inout] csrf buffer containing the CSRF
  * @param[in] encoded_password buffer containing the encoded password (@see encode_password)
- * @return char true if success, false otherwise
+ * @return true if success
+ * @return false otherwise
  */
 char login(const char *host, char *buffer, BYTE *sessionid, BYTE *csrf, const BYTE *encoded_password) {
   char sessionid_found = 0, token_found = 0, responseOK_found = 0;
@@ -175,9 +157,7 @@ char login(const char *host, char *buffer, BYTE *sessionid, BYTE *csrf, const BY
       ptr = strstr(buffer, "SessionID=");
       if (ptr != NULL) {
         memcpy(sessionid, ptr + 10, SESSIONID_LEN);
-        // sessionid = (char *)ptr + 10;
         sessionid[SESSIONID_LEN] = '\0';
-        // printf("sessionid: %s\n", sessionid);
         ptr = NULL;
         sessionid_found = 1;
       }
@@ -189,7 +169,6 @@ char login(const char *host, char *buffer, BYTE *sessionid, BYTE *csrf, const BY
       if (ptr != NULL) {
         memcpy(csrf, ptr + 31, CSRF_LEN);
         csrf[CSRF_LEN] = '\0';
-        // printf("new csrf: %s\n", csrf);
         ptr = NULL;
         token_found = 1;
       }
@@ -214,14 +193,16 @@ char login(const char *host, char *buffer, BYTE *sessionid, BYTE *csrf, const BY
 }
 
 /**
- * @brief Sends a GET request to get a new CSRF token
+ * @brief Send a GET request to get a new CSRF token and parse the router response.
+ * @see http_get_csrf()
  *
  * @param[in] host String representing the router host
  * @param[inout] buffer buffer used to read data from socket
  * @param[in] sessionid buffer containing the SessionID
  * @param[out] csrf buffer containing the new CSRF
  * @param[in] csrf1 buffer containing the RequestVerificationToken CSRF
- * @return char true if success, false otherwise
+ * @return true if success
+ * @return false otherwise
  */
 char get_csrf(const char *host, char *buffer, const BYTE *sessionid, BYTE *csrf, BYTE *csrf1) {
   char csrf_found = 0;
@@ -237,9 +218,7 @@ char get_csrf(const char *host, char *buffer, const BYTE *sessionid, BYTE *csrf,
       ptr = strstr(buffer, "<TokInfo>");
       if (ptr != NULL) {
         memcpy(csrf, ptr + 9, CSRF_LEN);
-        // csrf = (char *)ptr + 9;
         csrf[CSRF_LEN] = '\0';
-        // printf("csrf1: %s\n", csrf);
         ptr = NULL;
         csrf_found = 1;
       }
@@ -254,14 +233,16 @@ char get_csrf(const char *host, char *buffer, const BYTE *sessionid, BYTE *csrf,
 }
 
 /**
- * @brief
+ * @brief Send a POST request to request a band change and parse the router response.
+ * @see http_post_band()
  *
- * @param host
- * @param buffer
- * @param sessionid
- * @param csrf
- * @param band
- * @return char
+ * @param[in] host String representing the router host
+ * @param[inout] buffer buffer used to read data from socket
+ * @param[in] sessionid buffer containing the SessionID
+ * @param[out] csrf buffer containing the new CSRF
+ * @param[in] band Band in hex format to change to @see ../README.md
+ * @return true if success
+ * @return false otherwise
  */
 char band_change(const char *host, char *buffer, const BYTE *sessionid, BYTE *csrf, const char *band) {
   char band_changed = 0;
