@@ -117,4 +117,16 @@ huawei-lte-aggregation 192.168.8.1 pass 8000000 8000044
 
 For example, B28+B7+B3 = 8000000+40+4 = 8000044
 
-For best results, run this program with a cron job (https://openwrt.org/docs/guide-user/base-system/cron).
+### Cron job
+For best results, run this program with a Cron job (https://openwrt.org/docs/guide-user/base-system/cron).
+
+Example, to run every day at 05:00
+```bash
+# Write out current crontab
+crontab -l > mycron
+# echo new cron into cron file
+echo "0 5 * * * huawei-lte-aggregation 192.168.8.1 pwd 2>&1 | /usr/bin/logger -t huawei-lte-aggregation" >> mycron
+# Install new cron file
+crontab mycron
+rm mycron
+```
