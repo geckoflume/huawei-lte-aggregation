@@ -1,12 +1,13 @@
 /**
  * @file huawei-lte-aggregation.c
  * @author Florian Mornet (Florian.Mornet@bordeaux-inp.fr)
- * @brief Enable Huawei B715s-23 LTE Carrier Aggregation (CA) on specific bands: B28 UL and B28+B7+B3 DL (Free Mobile).
+ * @brief Enable Huawei B715s-23 LTE Carrier Aggregation (CA) 
+ * (by default, specific bands: B28 UL and B28+B7+B3 DL (for french MNO Free Mobile)).
  * @version 0.1
  * @date 2020-12-29
- * 
- * @copyright Copyright (c) 2020
- * 
+ *
+ * @copyright Copyright (c) 2020. This is free software, licensed under the GNU General Public License v3.
+ *
  */
 #include "base64.h"
 #include "netutils.h"
@@ -238,7 +239,7 @@ char get_csrf(const char *host, char *buffer, const BYTE *sessionid, BYTE *csrf,
         memcpy(csrf, ptr + 9, CSRF_LEN);
         // csrf = (char *)ptr + 9;
         csrf[CSRF_LEN] = '\0';
-        //printf("csrf1: %s\n", csrf);
+        // printf("csrf1: %s\n", csrf);
         ptr = NULL;
         csrf_found = 1;
       }
@@ -295,9 +296,17 @@ int main(int argc, char const *argv[]) {
   BYTE sessionid[SESSIONID_LEN + 1];
   BYTE csrf[CSRF_LEN + 1];
   BYTE csrf_new[CSRF_LEN + 1];
+  const char *band_ul = "8000000";
+  const char *band_dl = "8000044";
 
+  if (argc == 5) {
+    band_ul = argv[3];
+    band_dl = argv[4];
+  }
   if (argc != 3) {
-    fprintf(stderr, "Usage: %s <huawei-ip> <password>\n", argv[0]);
+    fprintf(stderr,
+            "Usage: %s <huawei-ip> <password> [ul-band] [dl-band]\nExample: %s 192.168.8.1 pass 8000000 8000044\n",
+            argv[0], argv[0]);
     exit(EXIT_FAILURE);
   }
 
@@ -316,7 +325,7 @@ int main(int argc, char const *argv[]) {
   if (!csrf_success)
     exit_failure("CSRF1");
 
-  char band_ul_success = band_change(argv[1], buffer, sessionid, csrf_new, "8000000");
+  char band_ul_success = band_change(argv[1], buffer, sessionid, csrf_new, band_ul);
   if (!band_ul_success)
     exit_failure("B28 UL");
 
@@ -324,7 +333,7 @@ int main(int argc, char const *argv[]) {
   if (!csrf_success)
     exit_failure("CSRF1");
 
-  char band_dl_success = band_change(argv[1], buffer, sessionid, csrf_new, "8000044");
+  char band_dl_success = band_change(argv[1], buffer, sessionid, csrf_new, band_dl);
   if (!band_dl_success)
     exit_failure("B28+B7+B3 DL");
 

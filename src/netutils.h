@@ -5,7 +5,7 @@
  * @version 0.1
  * @date 2020-12-29
  * 
- * @copyright Copyright (c) 2020
+ * @copyright Copyright (c) 2020. This is free software, licensed under the GNU General Public License v3.
  * 
  */
 

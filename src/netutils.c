@@ -5,7 +5,7 @@
  * @version 0.1
  * @date 2020-12-29
  * 
- * @copyright Copyright (c) 2020
+ * @copyright Copyright (c) 2020. This is free software, licensed under the GNU General Public License v3.
  * 
  */
 
@@ -72,6 +72,8 @@ ssize_t http_get_csrf(int fd, const char *host, const char *sessionid, const cha
 ssize_t http_post_band(int fd, const char *host, const char *sessionid, const char *csrf, const char* band)
 {
     char request[MAX_REQUEST_LEN];
-    int len = snprintf(request, MAX_REQUEST_LEN, "POST /api/net/net-mode HTTP/1.1\r\nHost: %s\r\nCookie: SessionID=%s\r\nContent-Type: application/xml\r\n__RequestVerificationToken: %s\r\nContent-Length: 148\r\n\r\n<?xml version=\"1.0\" encoding=\"UTF-8\" ?><request><NetworkMode>03</NetworkMode><NetworkBand>3FFFFFFF</NetworkBand><LTEBand>%s</LTEBand></request>", host, sessionid, csrf, band);
+    char buffer[MAX_REQUEST_LEN];
+    int len = snprintf(buffer, MAX_REQUEST_LEN, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?><request><NetworkMode>03</NetworkMode><NetworkBand>3FFFFFFF</NetworkBand><LTEBand>%s</LTEBand></request>", band);
+    len = snprintf(request, MAX_REQUEST_LEN, "POST /api/net/net-mode HTTP/1.1\r\nHost: %s\r\nCookie: SessionID=%s\r\nContent-Type: application/xml\r\n__RequestVerificationToken: %s\r\nContent-Length: %d\r\n\r\n%s", host, sessionid, csrf, len, buffer);
     return write(fd, request, len);
 }
